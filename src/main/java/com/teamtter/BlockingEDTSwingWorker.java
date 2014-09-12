@@ -8,13 +8,13 @@ import javax.swing.SwingWorker;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class BasicSwingWorker extends SwingWorker<Void, String> {
+public class BlockingEDTSwingWorker extends SwingWorker<Void, String> {
 
 	private JTextArea textArea;
 	public static String newLine = System.getProperty("line.separator");
 	private int	id;
 
-	public BasicSwingWorker(int id, JTextArea textArea) {
+	public BlockingEDTSwingWorker(int id, JTextArea textArea) {
 		this.id = id;
 		this.textArea = textArea;
 	}
@@ -41,4 +41,5 @@ public class BasicSwingWorker extends SwingWorker<Void, String> {
 			textArea.append(newLine + id + " " + this.getClass().getSimpleName() + " " + currString );
 		}
 	}
+
 }

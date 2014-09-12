@@ -3,20 +3,34 @@ package com.teamtter;
 import java.util.List;
 
 import javax.swing.JTextArea;
+import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class BasicSwingWorker extends SwingWorker<Void, String> {
+public class NonBlockingEDTButWaitEndSwingWorker extends SwingWorker<Void, String> {
 
 	private JTextArea textArea;
 	public static String newLine = System.getProperty("line.separator");
 	private int	id;
+	private BlockUnblockGUI	blockUnblockGUI;
 
-	public BasicSwingWorker(int id, JTextArea textArea) {
+	public NonBlockingEDTButWaitEndSwingWorker(int id, JTextArea textArea, final BlockUnblockGUI blockUnblockGUI) {
 		this.id = id;
 		this.textArea = textArea;
+		this.blockUnblockGUI = blockUnblockGUI;
+		if (SwingUtilities.isEventDispatchThread()) {
+			blockUnblockGUI.blockGUI();
+		} else {
+			SwingUtilities.invokeLater(new Runnable() {
+				
+				@Override
+				public void run() {
+					blockUnblockGUI.blockGUI();
+				}
+			});
+		}
 	}
 
 	@Override
@@ -41,4 +55,14 @@ public class BasicSwingWorker extends SwingWorker<Void, String> {
 			textArea.append(newLine + id + " " + this.getClass().getSimpleName() + " " + currString );
 		}
 	}
+
+	@Override
+	protected void done() {
+		/** RUNS IN THE EDT **/
+		blockUnblockGUI.unblockGUI();
+		super.done();
+	}
+	
+	
+
 }
