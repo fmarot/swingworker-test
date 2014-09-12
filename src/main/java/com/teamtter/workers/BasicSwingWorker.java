@@ -1,4 +1,4 @@
-package com.teamtter;
+package com.teamtter.workers;
 
 import java.util.List;
 
@@ -23,7 +23,7 @@ public class BasicSwingWorker extends SwingWorker<Void, String> {
 	protected Void doInBackground() throws Exception {
 		Thread.currentThread().setName(this.getClass().getSimpleName() + "-id");
 		int i = 0;
-		while (i < 10) {
+		while (i < 7) {
 			publish("working");
 			i++;
 			try {

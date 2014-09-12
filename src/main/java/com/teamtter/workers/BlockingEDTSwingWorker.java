@@ -1,24 +1,20 @@
-package com.teamtter;
+package com.teamtter.workers;
 
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
 
 import javax.swing.JTextArea;
 import javax.swing.SwingWorker;
 
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class BlockingEDTWithCountDownLatchSwingWorker extends SwingWorker<Void, String> {
+public class BlockingEDTSwingWorker extends SwingWorker<Void, String> {
 
-	@Getter
-	private CountDownLatch latch = new CountDownLatch(1);
 	private JTextArea textArea;
 	public static String newLine = System.getProperty("line.separator");
 	private int	id;
 
-	public BlockingEDTWithCountDownLatchSwingWorker(int id, JTextArea textArea) {
+	public BlockingEDTSwingWorker(int id, JTextArea textArea) {
 		this.id = id;
 		this.textArea = textArea;
 	}
@@ -27,7 +23,7 @@ public class BlockingEDTWithCountDownLatchSwingWorker extends SwingWorker<Void, 
 	protected Void doInBackground() throws Exception {
 		Thread.currentThread().setName(this.getClass().getSimpleName() + "-id");
 		int i = 0;
-		while (i < 10) {
+		while (i < 7) {
 			publish("working");
 			i++;
 			try {
@@ -36,7 +32,6 @@ public class BlockingEDTWithCountDownLatchSwingWorker extends SwingWorker<Void, 
 				log.error("Thread.sleep exception...");
 			}
 		}
-		latch.countDown();	// must be done outside the EDT because the caller is already waiting actively in the EDT
 		return null;
 	}
 

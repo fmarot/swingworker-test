@@ -17,6 +17,14 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.SwingUtilities;
 
+import com.teamtter.interfaces.IBlockUnblockGUI;
+import com.teamtter.interfaces.IWhenWorkerFinished;
+import com.teamtter.workers.BasicSwingWorker;
+import com.teamtter.workers.BlockingEDTSwingWorker;
+import com.teamtter.workers.BlockingEDTWithCountDownLatchSwingWorker;
+import com.teamtter.workers.NonBlockingEDTButWaitEndSwingWorker;
+import com.teamtter.workers.NonBlockingEDTButWaitEndSwingWorker2;
+
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
@@ -64,6 +72,9 @@ public class ButtonsTester {
 		buttons.add(button);
 		panel.add(button);
 		button = buildNonBlockingEDTButWaitEndSwingWorkerButton();
+		buttons.add(button);
+		panel.add(button);
+		button = buildNonBlockingEDTButWaitEndSwingWorker2Button();
 		buttons.add(button);
 		panel.add(button);
 		return panel;
@@ -126,30 +137,91 @@ public class ButtonsTester {
 			@Override
 			public void actionPerformed(ActionEvent event) {
 				
-				BlockUnblockGUI blockUnblockGUI = new BlockUnblockGUI() {
+				IBlockUnblockGUI blockUnblockGUI = new IBlockUnblockGUI() {
 
 					@Override
 					public void blockGUI() {
-						for (Component comp : buttons) {
-							comp.setEnabled(false);
-						}
+						ButtonsTester.this.blockGUI();
 					}
 
 					@Override
 					public void unblockGUI() {
-						for (Component comp : buttons) {
-							comp.setEnabled(true);
-						}
+						ButtonsTester.this.unblockGUI();
 					}
-					
 				};
 				
-				NonBlockingEDTButWaitEndSwingWorker worker = new NonBlockingEDTButWaitEndSwingWorker(maxIdWorkers++, textArea, blockUnblockGUI);
-				textArea.append("\n" + "Will await NonBlockingEDTButWaitEnd...");
+				// as we don't explicitly wait for this Swingworker to finish, we have
+				// to provide him with an instance of IWhenWorkerFinished to tell him 
+				// what to do when the work is done.
+				IWhenWorkerFinished onfinish = new IWhenWorkerFinished() {
+
+					@Override
+					public void afterWorkInBackgroundthread() {
+						// do some more work outside EDT...
+					}
+
+					@Override
+					public void afterWorkInEDT() {
+						textArea.append("\n" + "OK NonBlockingEDTButWaitEnd is done right now. Updating the GUI outside the EDT ! :)");
+					}
+				};
+				
+				NonBlockingEDTButWaitEndSwingWorker worker 
+				= new NonBlockingEDTButWaitEndSwingWorker(maxIdWorkers++, textArea, blockUnblockGUI, onfinish);
+				textArea.append("\n" + "Will start NonBlockingEDTButWaitEnd...");
 				worker.execute();
 			}
 		});
 		return button;
+	}
+	
+
+	private Component buildNonBlockingEDTButWaitEndSwingWorker2Button() {
+		JButton button = new JButton("NonBlockingEDTButWaitEnd-2");
+		button.addActionListener(new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent event) {
+				blockGUI();
+				// as we don't explicitly wait for this Swingworker to finish, we have
+				// to provide him with an instance of IWhenWorkerFinished to tell him 
+				// what to do when the work is done.
+				IWhenWorkerFinished onfinish = new IWhenWorkerFinished() {
+
+					@Override
+					public void afterWorkInBackgroundthread() {
+						// do some more work outside EDT...
+					}
+
+					@Override
+					public void afterWorkInEDT() {
+						textArea.append("\n" + "OK NonBlockingEDTButWaitEnd is done right now. Updating the GUI outside the EDT ! :)");
+						unblockGUI();
+					}
+				};
+				
+				NonBlockingEDTButWaitEndSwingWorker2 worker 
+				= new NonBlockingEDTButWaitEndSwingWorker2(maxIdWorkers++, textArea, onfinish);
+				textArea.append("\n" + "Will start NonBlockingEDTButWaitEnd...");
+				worker.execute();
+			}
+		});
+		return button;
+	}
+	
+	/** Using this method, we make sure that the user can't do anything, but without blocking 
+	 * the EDT so the app is still responsive */
+	protected void blockGUI() {
+		for (Component comp : buttons) {
+			comp.setEnabled(false);
+		}
+	}
+	
+	/** When background work is done, let the user interact again twith the app */
+	private void unblockGUI() {
+		for (Component comp : buttons) {
+			comp.setEnabled(true);
+		}
 	}
 
 }

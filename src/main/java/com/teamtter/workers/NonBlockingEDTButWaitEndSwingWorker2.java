@@ -1,4 +1,4 @@
-package com.teamtter;
+package com.teamtter.workers;
 
 import java.util.List;
 
@@ -6,38 +6,30 @@ import javax.swing.JTextArea;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 
+import com.teamtter.interfaces.IBlockUnblockGUI;
+import com.teamtter.interfaces.IWhenWorkerFinished;
+
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class NonBlockingEDTButWaitEndSwingWorker extends SwingWorker<Void, String> {
+public class NonBlockingEDTButWaitEndSwingWorker2 extends SwingWorker<Void, String> {
 
 	private JTextArea textArea;
 	public static String newLine = System.getProperty("line.separator");
 	private int	id;
-	private BlockUnblockGUI	blockUnblockGUI;
+	private IWhenWorkerFinished	onfinish;
 
-	public NonBlockingEDTButWaitEndSwingWorker(int id, JTextArea textArea, final BlockUnblockGUI blockUnblockGUI) {
+	public NonBlockingEDTButWaitEndSwingWorker2(int id, JTextArea textArea, IWhenWorkerFinished onfinish) {
 		this.id = id;
 		this.textArea = textArea;
-		this.blockUnblockGUI = blockUnblockGUI;
-		if (SwingUtilities.isEventDispatchThread()) {
-			blockUnblockGUI.blockGUI();
-		} else {
-			SwingUtilities.invokeLater(new Runnable() {
-				
-				@Override
-				public void run() {
-					blockUnblockGUI.blockGUI();
-				}
-			});
-		}
+		this.onfinish = onfinish;
 	}
 
 	@Override
 	protected Void doInBackground() throws Exception {
 		Thread.currentThread().setName(this.getClass().getSimpleName() + "-id");
 		int i = 0;
-		while (i < 10) {
+		while (i < 7) {	// wait 7 seconds
 			publish("working");
 			i++;
 			try {
@@ -46,6 +38,7 @@ public class NonBlockingEDTButWaitEndSwingWorker extends SwingWorker<Void, Strin
 				log.error("Thread.sleep exception...");
 			}
 		}
+		onfinish.afterWorkInBackgroundthread();
 		return null;
 	}
 
@@ -58,8 +51,8 @@ public class NonBlockingEDTButWaitEndSwingWorker extends SwingWorker<Void, Strin
 
 	@Override
 	protected void done() {
-		/** RUNS IN THE EDT **/
-		blockUnblockGUI.unblockGUI();
+		/** By definition of a SwingWorker, done() RUNS IN THE EDT **/
+		onfinish.afterWorkInEDT();
 		super.done();
 	}
 	
